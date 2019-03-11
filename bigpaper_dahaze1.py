@@ -61,6 +61,13 @@ a = parser.parse_args()
 EPS = 1e-12
 CROP_SIZE = 256
 
+
+'''
+collections.namedtuple(typename, field_names)
+    namedtuple是一个函数，它用来创建一个自定义的tuple对象，并且规定了tuple元素的个数，并可以用属性而不是索引来引用tuple的某个元素。
+    field_names使属性名，可以是一个list，也可以是用“,”分隔的字符串
+'''
+
 Examples = collections.namedtuple("Examples", "paths, inputs, targets, count, steps_per_epoch")
 Model = collections.namedtuple("Model",
                                "outputs, predict_real, predict_fake, discrim_loss, discrim_grads_and_vars, gen_loss_GAN, gen_loss_L1,gen_loss_L2,gen_loss_P, gen_grads_and_vars, train")
@@ -107,6 +114,19 @@ def conv(batch_input, out_channels, stride):
         in_channels = batch_input.get_shape()[3]
         filter = tf.get_variable("filter", [4, 4, in_channels, out_channels], dtype=tf.float32,
                                  initializer=tf.random_normal_initializer(0, 0.02))
+
+        '''
+        tf.pad(tensor, paddings, mode="CONSTANT", name=None, constant_values=0)
+            填充
+            tensor 是要填充的张量
+            padding 是在各个维度上填充的行数，要求padding的rank与tensor的rank相同，各个元素代表各个维度前后填充多少行
+                如：paddings=[[1,1],[2,3]]表示在第1个维度前后都填充1行；在第2个维度前填充2行，后填充3行
+            mode 可以取三个值，分别是"CONSTANT" ,"REFLECT","SYMMETRIC"
+                mode="CONSTANT" 是填充0（constant_values的值）
+                mode="REFLECT"是映射填充，上下（1维）填充顺序和paddings是相反的，左右（零维）顺序补齐
+                mode="SYMMETRIC"是对称填充，上下（1维）填充顺序是和paddings相同的，左右（零维）对称补齐
+        '''
+
         # [batch, in_height, in_width, in_channels], [filter_width, filter_height, in_channels, out_channels]
         #     => [batch, out_height, out_width, out_channels]
         padded_input = tf.pad(batch_input, [[0, 0], [1, 1], [1, 1], [0, 0]], mode="CONSTANT")
@@ -114,6 +134,11 @@ def conv(batch_input, out_channels, stride):
         return conv
 
 
+'''
+lrelu：
+    x≥0，y=x
+    x＜0，y=ax
+'''
 def lrelu(x, a):
     with tf.name_scope("lrelu"):
         # adding these together creates the leak part and linear part
@@ -152,6 +177,12 @@ def deconv(batch_input, out_channels):
                                       [1, 2, 2, 1], padding="SAME")
         return conv
 
+'''
+tf.identity(input, name=None)
+    对于control_dependencies这个管理器，只有当with里面的操作是一个op时，才会生效，也就是先执行传入的参数op，再执行里面的op。
+    而y=x仅仅是tensor的一个简单赋值，不是定义的op，所以在图中不会形成一个节点，这样该管理器就失效了。
+    tf.identity是返回一个一模一样新的tensor的op，这会增加一个新节点到gragh中，这时control_dependencies就会生效
+'''
 
 def check_image(image):
     assertion = tf.assert_equal(tf.shape(image)[-1], 3, message="image must have 3 color channels")
@@ -167,6 +198,14 @@ def check_image(image):
     image.set_shape(shape)
     return image
 
+
+'''
+mask = tf.cast(x <= a, dtype=tf.float32)
+    制作掩膜的技巧
+    x是一个矩阵，“x <= a”可以使矩阵x中符合该条件的元素置为True，不符合的置为False
+    在进行类别转换，使True置为1.0，False置为0.0
+    此时就生成了满足条件的掩膜
+'''
 
 # based on https://github.com/torch/image/blob/9f65c30167b2048ecbe8b7befdc6b2d6d12baee9/generic/image.c
 def rgb_to_lab(srgb):
@@ -257,9 +296,18 @@ def lab_to_rgb(lab):
 
 
 def load_examples():
+    # 判断input路径是否存在
     if a.input_dir is None or not os.path.exists(a.input_dir):
         raise Exception("input_dir does not exist")
 
+    '''
+    glob.glob(pathname)
+        pathname是一个字符串，允许出现“*”、“?”、"["、"]"等通配符，不能含有“~”
+        这个函数根据pathname筛选匹配的路径
+        这个函数是通过配合使用os.listdir()与fnmatch.fnmatch()实现的，而非调用一个子shell
+    '''
+
+    # 匹配出图片路径
     input_paths = glob.glob(os.path.join(a.input_dir, "*.jpg"))
     decode = tf.image.decode_jpeg
     if len(input_paths) == 0:
@@ -269,10 +317,27 @@ def load_examples():
     if len(input_paths) == 0:
         raise Exception("input_dir contains no image files")
 
+    '''
+    os.path.basename(path)
+        获取路径最后的文件名，当路径以“\”结尾时，返回空字符串
+    os.path.splitext(path)
+        分离文件路径的文件名和扩展名
+    '''
+
     def get_name(path):
         name, _ = os.path.splitext(os.path.basename(path))
         return name
 
+    '''
+    string.isdigit()
+        判断字符串是否全为数字组成
+    all()
+        当元素全为True时返回True，否则返回False
+    ang()
+        当元素全为False时返回True，否则返回False
+    '''
+
+    # 排序
     # if the image names are numbers, sort by the value rather than asciibetically
     # having sorted inputs means that the outputs are sorted in test mode
     if all(get_name(path).isdigit() for path in input_paths):
@@ -281,18 +346,23 @@ def load_examples():
         input_paths = sorted(input_paths)
 
     with tf.name_scope("load_images"):
+        # 使用文件名队列读取数据
         path_queue = tf.train.string_input_producer(input_paths, shuffle=a.mode == "train")
         reader = tf.WholeFileReader()
         paths, contents = reader.read(path_queue)
+        # decode图片，转换到[0,1]区间
         raw_input = decode(contents)
         raw_input = tf.image.convert_image_dtype(raw_input, dtype=tf.float32)
 
+        # 断言图片必须有三通道
         assertion = tf.assert_equal(tf.shape(raw_input)[2], 3, message="image does not have 3 channels")
         with tf.control_dependencies([assertion]):
             raw_input = tf.identity(raw_input)
 
         raw_input.set_shape([None, None, 3])
 
+        # 是否转换到LAP颜色空间
+        # 把数据转换到[-1,1]区间
         if a.lab_colorization:
             # load color and brightness from image, no B image exists here
             lab = rgb_to_lab(raw_input)
@@ -305,6 +375,7 @@ def load_examples():
             a_images = preprocess(raw_input[:, :width // 2, :])
             b_images = preprocess(raw_input[:, width // 2:, :])
 
+    # 样例图中，左侧为有雾图像，右侧为无雾图像
     if a.which_direction == "AtoB":
         inputs, targets = [a_images, b_images]
     elif a.which_direction == "BtoA":
@@ -316,6 +387,8 @@ def load_examples():
     # input and output images
     seed = random.randint(0, 2 ** 31 - 1)
 
+    # 变换图像
+    # 水平翻转、裁切
     def transform(image):
         r = image
         if a.flip:
@@ -338,6 +411,7 @@ def load_examples():
     with tf.name_scope("target_images"):
         target_images = transform(targets)
 
+    # 分割batch、epoch
     paths_batch, inputs_batch, targets_batch = tf.train.batch([paths, input_images, target_images],
                                                               batch_size=a.batch_size)
     steps_per_epoch = int(math.ceil(len(input_paths) / a.batch_size))
