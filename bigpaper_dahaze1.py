@@ -127,6 +127,8 @@ def conv(batch_input, out_channels, stride):
                 mode="SYMMETRIC"是对称填充，上下（1维）填充顺序是和paddings相同的，左右（零维）对称补齐
         '''
 
+        # 考虑为什么不选择padding='SAME'，这样就可以不填充
+
         # [batch, in_height, in_width, in_channels], [filter_width, filter_height, in_channels, out_channels]
         #     => [batch, out_height, out_width, out_channels]
         padded_input = tf.pad(batch_input, [[0, 0], [1, 1], [1, 1], [0, 0]], mode="CONSTANT")
