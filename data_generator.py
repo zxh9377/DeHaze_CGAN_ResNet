@@ -5,7 +5,7 @@ import cv2
 import flags
 
 
-class Data_Generator():
+class Data_Generator:
 
     def __init__(self):
         self.dataset = None
