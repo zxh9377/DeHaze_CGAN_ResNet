@@ -17,6 +17,8 @@ tf.flags.DEFINE_integer("epoch_num", 100, "number of training epochs")
 tf.flags.DEFINE_integer("batch_size", 10, "number of images in batch")
 tf.flags.DEFINE_integer("max_steps", 20000, "number of training steps (0 to disable)")
 
+tf.flags.DEFINE_integer("ngf", 64, "number of generator filters in first conv layer")
+tf.flags.DEFINE_integer("ndf", 64, "number of discriminator filters in first conv layer")
 
 
 
@@ -38,8 +40,6 @@ tf.flags.DEFINE_float("aspect_ratio", 1.0, "aspect ratio of output images (width
 tf.flags.DEFINE_boolean("lab_colorization", False, "split input image into brightness (A) and color (B)")
 
 tf.flags.DEFINE_string("which_direction", "BtoA", "AtoB or BtoA")
-tf.flags.DEFINE_integer("ngf", 64, "number of generator filters in first conv layer")
-tf.flags.DEFINE_integer("ndf", 64, "number of discriminator filters in first conv layer")
 tf.flags.DEFINE_boolean("flip", True, "flip images horizontally")
 
 tf.flags.DEFINE_float("lr", 0.0002, "initial learning rate for adam")
