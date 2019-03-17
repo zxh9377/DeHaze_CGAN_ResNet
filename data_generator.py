@@ -115,9 +115,3 @@ class Data_Generator:
     def check_path(self, path, message=None):
         if path is None or not os.path.exists(path):
             raise Exception("Message: {}".format(message))
-
-
-a = Data_Generator()
-with tf.Session() as sess:
-    result = sess.run(a.input)
-    print(result)
