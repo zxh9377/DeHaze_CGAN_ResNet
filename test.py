@@ -2,6 +2,7 @@ import tensorflow as tf
 import cv2
 import numpy
 import preceptual_loss as p_loss
+import vgg.vgg16 as vgg_16
 
 img = []
 img.append(cv2.resize(
@@ -56,6 +57,9 @@ img_target = tf.constant(img_target, dtype=tf.uint8)
 img = tf.cast(img, dtype=tf.float32)
 img_gen = tf.cast(img_gen, dtype=tf.float32)
 img_target = tf.cast(img_target, dtype=tf.float32)
+
+vgg_16_model = vgg_16.Vgg16()
+vgg
 
 closs, sloss = p_loss.calc_preceptual_loss(img, img_gen, img_target)
 

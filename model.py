@@ -62,9 +62,16 @@ class Model:
                                       + self.generator_L2_loss * flags.FLAGS.gene_loss_l2_weight \
                                       + self.generator_p_content_loss * flags.FLAGS.gene_p_content_loss_weight \
                                       + self.generator_p_style_loss * flags.FLAGS.gene_p_style_loss_weight
+                tf.summary.scalar(name="generator_GAN_loss", tensor=self.generator_GAN_loss)
+                tf.summary.scalar(name="generator_L1_loss", tensor=self.generator_L1_loss)
+                tf.summary.scalar(name="generator_L2_loss", tensor=self.generator_L2_loss)
+                tf.summary.scalar(name="generator_p_content_loss", tensor=self.generator_p_content_loss)
+                tf.summary.scalar(name="generator_p_style_loss", tensor=self.generator_p_style_loss)
+                tf.summary.scalar(name="generator_loss", tensor=self.generator_loss)
             with tf.variable_scope("discriminator_loss"):
                 self.discriminator_loss = self.calc_discriminator_loss(self.discriminator_output_gene,
                                                                        self.discriminator_output_clear)
+                tf.summary.scalar(name="discriminator_loss", tensor=self.discriminator_loss)
 
         # train
         with tf.variable_scope("train"):
@@ -78,7 +85,6 @@ class Model:
                 discrim_optim = tf.train.AdamOptimizer(flags.FLAGS.discrim_learning_rate)
                 discrim_grad = discrim_optim.compute_gradients(self.discriminator_loss, var_list=discrim_vars)
                 self.discriminator_train = discrim_optim.apply_gradients(discrim_grad)
-
 
     def create_generator(self, input_img):
         layers = []
@@ -110,11 +116,6 @@ class Model:
                 normal = tf.layers.batch_normalization(inputs=conv, training=self.training)  # batch normalization
                 lrelu = tf.nn.leaky_relu(normal)  # lrelu activate
                 layers.append(lrelu)
-                # if not i == len(encoder_filter_nums) - 1:
-                #     lrelu = tf.nn.leaky_relu(normal)
-                #     layers.append(lrelu)
-                # else:
-                #     layers.append(normal)
 
         num_encode_layers = len(layers)  # the number of encode layers
 
@@ -193,8 +194,7 @@ class Model:
         gene_loss_GAN = tf.reduce_mean(-tf.log(discrim_out_gene + flags.FLAGS.EPS))
         gene_loss_L1 = tf.reduce_mean(tf.abs(gene_img - clear_img))
         gene_loss_L2 = tf.reduce_mean(tf.nn.l2_loss(gene_img - clear_img))
-        gene_p_content_loss, gene_p_style_loss = p_loss.calc_preceptual_loss(hazy_img, gene_img,
-                                                                             clear_img)
+        gene_p_content_loss, gene_p_style_loss = p_loss.calc_preceptual_loss(hazy_img, gene_img, clear_img)
         return {
             "gene_loss_GAN": gene_loss_GAN,
             "gene_loss_L1": gene_loss_L1,
@@ -211,6 +211,7 @@ class Model:
 
 dataset = data_generator.Data_Generator()
 model = Model()
+vars = tf.all_variables()
 with tf.Session() as sess:
     sess.run(tf.global_variables_initializer())
     for i in range(20):

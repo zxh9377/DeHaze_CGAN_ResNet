@@ -1,5 +1,5 @@
 import tensorflow as tf
-import vgg.vgg_simple as vgg
+import vgg.vgg16 as vgg_16
 import flags
 
 
@@ -15,8 +15,10 @@ def calc_preceptual_loss(hazy_img, gene_img, clear_img):
         return:
             content_loss: float
             style_loss: float
+            vgg_init_fn: a function to restore vgg model from checkpoint.
     '''
-    f1, f2, f3, f4, exclude = vgg.vgg_16(tf.concat([hazy_img, gene_img, clear_img], axis=0))
+    vgg_input_bgr = tf.concat([hazy_img, gene_img, clear_img], axis=0)
+    f1, f2, f3, f4 = call_vgg_16(vgg_input_bgr)
     hazy_img_f1, gene_img_f1, clear_img_f1 = tf.split(value=f1, num_or_size_splits=3, axis=0)
     hazy_img_f2, gene_img_f2, clear_img_f2 = tf.split(value=f2, num_or_size_splits=3, axis=0)
     hazy_img_f3, gene_img_f3, clear_img_f3 = tf.split(value=f3, num_or_size_splits=3, axis=0)
@@ -30,6 +32,17 @@ def calc_preceptual_loss(hazy_img, gene_img, clear_img):
     style_loss = style_loss + calc_style_loss(gene_img_f4, clear_img_f4)
 
     return content_loss, style_loss
+
+
+def call_vgg_16(input_bgr):
+    input_bgr_224 = tf.image.resize_images(input_bgr, [224, 224])
+
+    vgg_16_model = vgg_16.Vgg16(vgg16_npy_path=flags.FLAGS.vgg_model_dir)
+    vgg_16_model.build(input_bgr_224)
+
+    f1, f2, f3, f4 = vgg_16_model.conv1_2, vgg_16_model.conv2_2, vgg_16_model.conv3_3, vgg_16_model.conv4_3
+
+    return f1, f2, f3, f4
 
 
 def calc_content_loss(hazy_img_f, gene_img_f):
