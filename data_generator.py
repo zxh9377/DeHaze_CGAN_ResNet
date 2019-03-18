@@ -62,8 +62,8 @@ class Data_Generator:
 
         # preprocess image
         def _preprocess_image(clear_img, hazy_img):
-            clear_img = self.preprocess_image(clear_img)
-            hazy_img = self.preprocess_image(hazy_img)
+            clear_img = Data_Generator.preprocess_image(clear_img)
+            hazy_img = Data_Generator.preprocess_image(hazy_img)
             return clear_img, hazy_img
 
         couple_clear_img, couple_hazy_img = _load_couple_img_path(clear_dir=flags.FLAGS.train_clear_dir,
@@ -97,21 +97,36 @@ class Data_Generator:
 
         self.dataset = tf.data.Dataset.from_tensor_slices(hazy_img_path)
         self.dataset = self.dataset.map(map_func=_read_image)  # read image
-        self.dataset = self.dataset.map(map_func=self.preprocess_image)  # preprocess image
+        self.dataset = self.dataset.map(map_func=Data_Generator.preprocess_image)  # preprocess image
         self.dataset = self.dataset.batch(batch_size=flags.FLAGS.batch_size)  # bacth
 
         self.data_iterator = self.dataset.make_one_shot_iterator()
         self.input = self.data_iterator.get_next()
 
     # preprocess single image
-    def preprocess_image(self, img):
+    @ staticmethod
+    def preprocess_image(img):
         img.set_shape([None, None, None])  # tensorflow can not infer the image's shape, so must set shape
         img = tf.image.resize_images(img, [flags.FLAGS.scale_size, flags.FLAGS.scale_size])  # resize
+        img = Data_Generator.scale_img(img)
+        return img
+
+    # scale image [0,255] => [-1,1]
+    @ staticmethod
+    def scale_img(img):
         img = tf.cast(img, tf.float32) / 255.  # convert [0,255]=>[0,1]
         img = img * 2. - 1.  # convert [0,1]=>[-1,1]
         return img
 
+    # scale image [-1,1] => [0,255]
+    @ staticmethod
+    def de_scale_img(img):
+        img = (img + 1) / 2.  # convert [-1,1]=>[0,1]
+        img = img * 255.  # convert [0,1]=>[0,255]
+        return img
+
     # check if the path exist
-    def check_path(self, path, message=None):
+    @ staticmethod
+    def check_path(path, message=None):
         if path is None or not os.path.exists(path):
             raise Exception("Message: {}".format(message))

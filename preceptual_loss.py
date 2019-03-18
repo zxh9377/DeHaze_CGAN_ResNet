@@ -1,6 +1,7 @@
 import tensorflow as tf
 import vgg.vgg16 as vgg_16
 import flags
+import data_generator
 
 
 def calc_preceptual_loss(hazy_img, gene_img, clear_img):
@@ -35,7 +36,15 @@ def calc_preceptual_loss(hazy_img, gene_img, clear_img):
 
 
 def call_vgg_16(input_bgr):
-    input_bgr_224 = tf.image.resize_images(input_bgr, [224, 224])
+    '''call for vgg_16 model
+
+        args:
+            input_bgr: bgr image [batch, height, width, 3] values scaled [-1, 1]
+        return:
+            f1, f2, f3, f4
+    '''
+    input_bgr_scaled = data_generator.Data_Generator.de_scale_img(input_bgr)
+    input_bgr_224 = tf.image.resize_images(input_bgr_scaled, [224, 224])
 
     vgg_16_model = vgg_16.Vgg16(vgg16_npy_path=flags.FLAGS.vgg_model_dir)
     vgg_16_model.build(input_bgr_224)

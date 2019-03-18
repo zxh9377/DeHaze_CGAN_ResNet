@@ -14,10 +14,8 @@ class Vgg16:
             path = os.path.abspath(os.path.join(path, os.pardir))
             path = os.path.join(path, "vgg16.npy")
             vgg16_npy_path = path
-            print(path)
 
         self.data_dict = np.load(vgg16_npy_path, encoding='latin1').item()
-        print("npy file loaded")
 
     def build(self, img):
         """
@@ -38,7 +36,7 @@ class Vgg16:
         #     green - VGG_MEAN[1],
         #     red - VGG_MEAN[2],
         # ])
-        bgr = img * 255.0
+        bgr = img
         assert bgr.get_shape().as_list()[1:] == [224, 224, 3]
 
         self.conv1_1 = self.conv_layer(bgr, "conv1_1")

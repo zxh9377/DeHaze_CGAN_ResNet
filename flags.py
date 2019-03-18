@@ -17,7 +17,7 @@ tf.flags.DEFINE_integer("img_channels", 3, "the number of the channels of input 
 tf.flags.DEFINE_integer("scale_size", 256, "scale images to this size in preprocess")
 tf.flags.DEFINE_boolean("shuffle", True, "if shuffle train dataset")
 tf.flags.DEFINE_integer("epoch_num", 10, "number of training epochs")
-tf.flags.DEFINE_integer("batch_size", 10, "number of images in batch")
+tf.flags.DEFINE_integer("batch_size", 4, "number of images in batch")
 tf.flags.DEFINE_integer("max_steps", 20000, "number of training steps (0 to disable)")
 tf.flags.DEFINE_integer("save_freq", 1000, "save model every save_freq steps, 0 to disable")
 tf.flags.DEFINE_integer("val_freq", 100, "update summaries every summary_freq steps")

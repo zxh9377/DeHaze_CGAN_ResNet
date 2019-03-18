@@ -211,7 +211,6 @@ class Model:
 
 dataset = data_generator.Data_Generator()
 model = Model()
-vars = tf.all_variables()
 with tf.Session() as sess:
     sess.run(tf.global_variables_initializer())
     for i in range(20):
