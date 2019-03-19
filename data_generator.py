@@ -11,8 +11,8 @@ class Data_Generator:
         self.dataset = None
         self.data_iterator = None
         self.input = None
-        if flags.FLAGS.mode == "train" or "test":  # train and test mode have the same dataset structure
-            self.load_train_dataset()
+        if flags.FLAGS.mode == "train" or flags.FLAGS.mode == "test":
+            self.load_train_dataset()  # train and test mode have the same dataset structure
         elif flags.FLAGS.mode == "use":
             self.load_use_dataset()
         else:
@@ -90,7 +90,7 @@ class Data_Generator:
                 return hazy_img
 
             # use tf.py_func() to call opencv module
-            return tf.py_func(func=_for_py_func, inp=[hazy_img_path], Tout=[tf.uint8])
+            return tf.py_func(func=_for_py_func, inp=[img_path], Tout=[tf.uint8])
 
         hazy_img_fname_list = os.listdir(flags.FLAGS.use_hazy_dir)  # get hazy images' filename
         hazy_img_path = [os.path.join(flags.FLAGS.use_hazy_dir, fname) for fname in hazy_img_fname_list]  # full path
@@ -98,13 +98,13 @@ class Data_Generator:
         self.dataset = tf.data.Dataset.from_tensor_slices(hazy_img_path)
         self.dataset = self.dataset.map(map_func=_read_image)  # read image
         self.dataset = self.dataset.map(map_func=Data_Generator.preprocess_image)  # preprocess image
-        self.dataset = self.dataset.batch(batch_size=flags.FLAGS.batch_size)  # bacth
+        self.dataset = self.dataset.batch(batch_size=flags.FLAGS.use_batch_size)  # bacth
 
         self.data_iterator = self.dataset.make_one_shot_iterator()
         self.input = self.data_iterator.get_next()
 
     # preprocess single image
-    @ staticmethod
+    @staticmethod
     def preprocess_image(img):
         img.set_shape([None, None, None])  # tensorflow can not infer the image's shape, so must set shape
         img = tf.image.resize_images(img, [flags.FLAGS.scale_size, flags.FLAGS.scale_size])  # resize
@@ -112,21 +112,21 @@ class Data_Generator:
         return img
 
     # scale image [0,255] => [-1,1]
-    @ staticmethod
+    @staticmethod
     def scale_img(img):
         img = tf.cast(img, tf.float32) / 255.  # convert [0,255]=>[0,1]
         img = img * 2. - 1.  # convert [0,1]=>[-1,1]
         return img
 
     # scale image [-1,1] => [0,255]
-    @ staticmethod
+    @staticmethod
     def de_scale_img(img):
         img = (img + 1) / 2.  # convert [-1,1]=>[0,1]
         img = img * 255.  # convert [0,1]=>[0,255]
         return img
 
     # check if the path exist
-    @ staticmethod
+    @staticmethod
     def check_path(path, message=None):
         if path is None or not os.path.exists(path):
             raise Exception("Message: {}".format(message))

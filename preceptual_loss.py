@@ -96,7 +96,6 @@ def gram_matrix(input_img):
     '''
     input_shape = tf.shape(input_img)
     batch_size, height, width, channels = input_shape[0], input_shape[1], input_shape[2], input_shape[3]
-    # input_img = tf.reshape(input_img, [flags.FLAGS.batch_size, -1, flags.FLAGS.img_channels])
     input_img = tf.reshape(input_img, tf.stack([batch_size, -1, channels]))
     grams = tf.matmul(input_img, input_img, transpose_a=True) / tf.to_float(height * width * channels)
     return grams

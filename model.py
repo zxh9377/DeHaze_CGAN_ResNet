@@ -209,20 +209,20 @@ class Model:
         return discrim_loss
 
 
-dataset = data_generator.Data_Generator()
-model = Model()
-with tf.Session() as sess:
-    sess.run(tf.global_variables_initializer())
-    for i in range(20):
-        input = sess.run(dataset.input)
-        feed_dict = {
-            model.input_clear: input[0],
-            model.input_hazy: input[1],
-            model.training: True,
-            model.keep_prob: flags.FLAGS.keep_prob
-        }
-        sess.run(model.discriminator_train, feed_dict=feed_dict)
-        sess.run(model.generator_train, feed_dict=feed_dict)
-        discrim_loss = sess.run(model.discriminator_loss, feed_dict=feed_dict)
-        gene_loss = sess.run(model.generator_loss, feed_dict=feed_dict)
-        print("step {0} : discrimator_loss:{1} genenrator_loss:{2}".format(i, discrim_loss, gene_loss))
+# dataset = data_generator.Data_Generator()
+# model = Model()
+# with tf.Session() as sess:
+#     sess.run(tf.global_variables_initializer())
+#     for i in range(20):
+#         input = sess.run(dataset.input)
+#         feed_dict = {
+#             model.input_clear: input[0],
+#             model.input_hazy: input[1],
+#             model.training: True,
+#             model.keep_prob: flags.FLAGS.keep_prob
+#         }
+#         sess.run(model.discriminator_train, feed_dict=feed_dict)
+#         sess.run(model.generator_train, feed_dict=feed_dict)
+#         discrim_loss = sess.run(model.discriminator_loss, feed_dict=feed_dict)
+#         gene_loss = sess.run(model.generator_loss, feed_dict=feed_dict)
+#         print("step {0} : discrimator_loss:{1} genenrator_loss:{2}".format(i, discrim_loss, gene_loss))
