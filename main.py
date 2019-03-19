@@ -28,6 +28,8 @@ def train():
     if not os.path.isdir(checkpoint_dir):
         os.mkdir(checkpoint_dir)
         print("make checkpoint dir : {}".format(checkpoint_dir))
+    print("log dir : {}".format(log_dir))
+    print("checkpoint dir : {}".format(checkpoint_dir))
 
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
@@ -46,10 +48,10 @@ def train():
                     net_model.keep_prob: flags.FLAGS.keep_prob
                 }
 
-                fetches = {
-                    "generator_train": net_model.generator_train,
-                    "discriminator": net_model.discriminator_train,
-                }
+                sess.run(net_model.generator_train, feed_dict=feed_dict)
+                sess.run(net_model.discriminator_train, feed_dict=feed_dict)
+
+                fetches = {}
                 if is_time(step, val_freq, max_steps):
                     fetches["generator_loss"] = net_model.generator_loss
                     fetches["discriminator_loss"] = net_model.discriminator_loss

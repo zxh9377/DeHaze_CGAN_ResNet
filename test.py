@@ -10,10 +10,8 @@ y = x.make_one_shot_iterator()
 z = y.get_next()
 
 with tf.Session() as sess:
-    try:
-        print(sess.run(z))
-    except tf.errors.OutOfRangeError:
-        print("over")
+    re = sess.run([])
+    print(re)
 
 
 # img = []
