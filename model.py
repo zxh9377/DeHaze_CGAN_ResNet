@@ -1,7 +1,6 @@
 import tensorflow as tf
 import flags
 import preceptual_loss as p_loss
-import data_generator
 
 
 class Model:
@@ -12,13 +11,13 @@ class Model:
         self.discriminator_output_clear = None
         self.generator_GAN_loss = None
         self.generator_L1_loss = None
-        self.generator_L2_loss = None
-        self.generator_p_content_loss = None
-        self.generator_p_style_loss = None
+        self.gene_p_loss = None
         self.generator_loss = None
         self.discriminator_loss = None
         self.generator_train = None
         self.discriminator_train = None
+        self.train_summary_merged = None
+        self.val_summary_merged = None
         with tf.variable_scope("input"):
             self.input_clear = tf.placeholder(dtype=tf.float32,
                                               shape=[None, flags.FLAGS.scale_size, flags.FLAGS.scale_size,
@@ -53,24 +52,24 @@ class Model:
                                                        self.discriminator_output_gene)
                 self.generator_GAN_loss = gene_losses["gene_loss_GAN"]
                 self.generator_L1_loss = gene_losses["gene_loss_L1"]
-                self.generator_L2_loss = gene_losses["gene_loss_L2"]
-                self.generator_p_content_loss = gene_losses["gene_p_content_loss"]
-                self.generator_p_style_loss = gene_losses["gene_p_style_loss"]
+                self.gene_p_loss = gene_losses["gene_p_loss"]
                 self.generator_loss = self.generator_GAN_loss * flags.FLAGS.gene_loss_gan_weight \
                                       + self.generator_L1_loss * flags.FLAGS.gene_loss_l1_weight \
-                                      + self.generator_L2_loss * flags.FLAGS.gene_loss_l2_weight \
-                                      + self.generator_p_content_loss * flags.FLAGS.gene_p_content_loss_weight \
-                                      + self.generator_p_style_loss * flags.FLAGS.gene_p_style_loss_weight
-                tf.summary.scalar(name="generator_GAN_loss", tensor=self.generator_GAN_loss)
-                tf.summary.scalar(name="generator_L1_loss", tensor=self.generator_L1_loss)
-                tf.summary.scalar(name="generator_L2_loss", tensor=self.generator_L2_loss)
-                tf.summary.scalar(name="generator_p_content_loss", tensor=self.generator_p_content_loss)
-                tf.summary.scalar(name="generator_p_style_loss", tensor=self.generator_p_style_loss)
-                tf.summary.scalar(name="generator_loss", tensor=self.generator_loss)
+                                      + self.gene_p_loss * flags.FLAGS.gene_p_loss_weight
+                # tf.summary.scalar(name="generator_GAN_loss", tensor=self.generator_GAN_loss)
+                # tf.summary.scalar(name="generator_L1_loss", tensor=self.generator_L1_loss)
+                # tf.summary.scalar(name="gene_p_loss", tensor=self.gene_p_loss)
+                train_generator_summary = tf.summary.scalar(name="generator_loss", tensor=self.generator_loss)
+                val_generator_summary = tf.summary.scalar(name="val_generator_loss", tensor=self.generator_loss)
             with tf.variable_scope("discriminator_loss"):
                 self.discriminator_loss = self.calc_discriminator_loss(self.discriminator_output_gene,
                                                                        self.discriminator_output_clear)
-                tf.summary.scalar(name="discriminator_loss", tensor=self.discriminator_loss)
+                train_discriminator_summary = tf.summary.scalar(name="discriminator_loss",
+                                                                tensor=self.discriminator_loss)
+                val_discriminator_summary = tf.summary.scalar(name="val_discriminator_loss",
+                                                              tensor=self.discriminator_loss)
+            self.train_summary_merged = tf.summary.merge([train_generator_summary, train_discriminator_summary])
+            self.val_summary_merged = tf.summary.merge([val_generator_summary, val_discriminator_summary])
 
         # train
         with tf.variable_scope("train"):
@@ -226,40 +225,24 @@ class Model:
             conv5 = tf.layers.conv2d(inputs=relu4, filters=1, kernel_size=3, strides=(1, 1), padding="same")
             sigmod5 = tf.nn.sigmoid(conv5)
 
-        return sigmod5
+        # flatten and reduce mean
+        with tf.variable_scope("reduce_mean"):
+            flatten = tf.reshape(sigmod5, shape=[-1, flags.FLAGS.scale_size * flags.FLAGS.scale_size])
+            mean_score = tf.reduce_mean(flatten, axis=1)
+
+        return mean_score
 
     def calc_generator_loss(self, hazy_img, gene_img, clear_img, discrim_out_gene):
-        gene_loss_GAN = tf.reduce_mean(-tf.log(discrim_out_gene + flags.FLAGS.EPS))
+        gene_loss_GAN = tf.reduce_mean(tf.log(1 - discrim_out_gene + flags.FLAGS.EPS))
         gene_loss_L1 = tf.reduce_mean(tf.abs(gene_img - clear_img))
-        gene_loss_L2 = tf.reduce_mean(tf.nn.l2_loss(gene_img - clear_img))
-        gene_p_content_loss, gene_p_style_loss = p_loss.calc_preceptual_loss(hazy_img, gene_img, clear_img)
+        _, gene_p_loss = p_loss.calc_preceptual_loss(hazy_img, gene_img, clear_img)
         return {
             "gene_loss_GAN": gene_loss_GAN,
             "gene_loss_L1": gene_loss_L1,
-            "gene_loss_L2": gene_loss_L2,
-            "gene_p_content_loss": gene_p_content_loss,
-            "gene_p_style_loss": gene_p_style_loss
+            "gene_p_loss": gene_p_loss,
         }
 
     def calc_discriminator_loss(self, discrim_out_gene, discrim_out_clear):
         discrim_loss = tf.reduce_mean(
             -(tf.log(discrim_out_clear + flags.FLAGS.EPS) + tf.log(1 - discrim_out_gene + flags.FLAGS.EPS)))
         return discrim_loss
-
-# dataset = data_generator.Data_Generator()
-# model = Model()
-# with tf.Session() as sess:
-#     sess.run(tf.global_variables_initializer())
-#     for i in range(20):
-#         input = sess.run(dataset.input)
-#         feed_dict = {
-#             model.input_clear: input[0],
-#             model.input_hazy: input[1],
-#             model.training: True,
-#             model.keep_prob: flags.FLAGS.keep_prob
-#         }
-#         sess.run(model.discriminator_train, feed_dict=feed_dict)
-#         sess.run(model.generator_train, feed_dict=feed_dict)
-#         discrim_loss = sess.run(model.discriminator_loss, feed_dict=feed_dict)
-#         gene_loss = sess.run(model.generator_loss, feed_dict=feed_dict)
-#         print("step {0} : discrimator_loss:{1} genenrator_loss:{2}".format(i, discrim_loss, gene_loss))

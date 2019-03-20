@@ -13,7 +13,8 @@ def is_time(step, freq, max_steps):
 
 
 def train():
-    train_dataset = data_generator.Data_Generator()
+    train_dataset = data_generator.Data_Generator(mode="train")
+    val_dataset = data_generator.Data_Generator(mode="val")
     net_model = model.Model()
 
     max_steps = flags.FLAGS.max_steps
@@ -33,7 +34,7 @@ def train():
 
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
-        merged = tf.summary.merge_all()
+
         writer = tf.summary.FileWriter(log_dir + "/", sess.graph)
         saver = tf.train.Saver(tf.global_variables(), max_to_keep=5)
 
@@ -48,23 +49,35 @@ def train():
                     net_model.keep_prob: flags.FLAGS.keep_prob
                 }
 
+                val_feed_dict = {}
+
+                # train
                 sess.run(net_model.generator_train, feed_dict=feed_dict)
                 sess.run(net_model.discriminator_train, feed_dict=feed_dict)
 
-                fetches = {}
-                if is_time(step, val_freq, max_steps):
-                    fetches["generator_loss"] = net_model.generator_loss
-                    fetches["discriminator_loss"] = net_model.discriminator_loss
-                if is_time(step, summary_freq, max_steps):
-                    fetches["merged"] = merged
+                if is_time(step, val_freq, max_steps) or is_time(step, summary_freq, max_steps):
+                    val_input_element = sess.run(val_dataset.input)
+                    val_feed_dict = {
+                        net_model.input_clear: val_input_element[0],
+                        net_model.input_hazy: val_input_element[1],
+                        net_model.keep_prob: 1.0
+                    }
 
-                fetches_result = sess.run(fetches, feed_dict=feed_dict)
-
                 if is_time(step, val_freq, max_steps):
-                    print("step {0} : discrimator_loss:{1}\tgenenrator_loss:{2}"
-                          .format(step, fetches_result["discriminator_loss"], fetches_result["generator_loss"]))
+                    generator_loss_re, discriminator_loss_re = sess.run(
+                        [net_model.generator_loss, net_model.discriminator_loss], feed_dict=feed_dict)
+                    val_generator_loss_re, val_discriminator_loss_re = sess.run(
+                        [net_model.generator_loss, net_model.discriminator_loss], feed_dict=val_feed_dict)
+                    print(
+                        "step {0}: train_g_loss: {1}\ttrain_d_loss: {2}\t\tval_g_loss: {3}\tval_d_loss: {4}".format(
+                            step, generator_loss_re, discriminator_loss_re, val_generator_loss_re,
+                            val_discriminator_loss_re))
+
                 if is_time(step, summary_freq, max_steps):
-                    writer.add_summary(fetches_result["merged"], step)
+                    train_merged_re = sess.run(net_model.train_summary_merged, feed_dict=feed_dict)
+                    val_merged_re = sess.run(net_model.val_summary_merged, feed_dict=val_feed_dict)
+                    writer.add_summary(train_merged_re, step)
+                    writer.add_summary(val_merged_re, step)
 
                 if is_time(step, save_freq, max_steps):
                     saver.save(sess, os.path.join(checkpoint_dir, "dehaze-model"), global_step=step)
@@ -76,7 +89,7 @@ def train():
 
 
 def use():
-    use_dataset = data_generator.Data_Generator()
+    use_dataset = data_generator.Data_Generator(mode="use")
     net_model = model.Model()
 
     checkpoint_dir = flags.FLAGS.checkpoint_dir

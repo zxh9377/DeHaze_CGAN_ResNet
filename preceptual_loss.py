@@ -25,6 +25,40 @@ def calc_preceptual_loss(hazy_img, gene_img, clear_img):
     hazy_img_f3, gene_img_f3, clear_img_f3 = tf.split(value=f3, num_or_size_splits=3, axis=0)
     hazy_img_f4, gene_img_f4, clear_img_f4 = tf.split(value=f4, num_or_size_splits=3, axis=0)
 
+    content_loss = calc_content_loss(hazy_img_f1, gene_img_f1)
+    content_loss = content_loss + calc_content_loss(hazy_img_f2, gene_img_f2)
+    content_loss = content_loss + calc_content_loss(hazy_img_f3, gene_img_f3)
+    content_loss = content_loss + calc_content_loss(hazy_img_f4, gene_img_f4)
+
+    style_loss = calc_content_loss(clear_img_f1, gene_img_f1)
+    style_loss = style_loss + calc_content_loss(clear_img_f2, gene_img_f2)
+    style_loss = style_loss + calc_content_loss(clear_img_f3, gene_img_f3)
+    style_loss = style_loss + calc_content_loss(clear_img_f4, gene_img_f4)
+
+    return content_loss / 4., style_loss / 4.
+
+
+def calc_preceptual_loss_origin(hazy_img, gene_img, clear_img):
+    '''calculate preceptual loss
+
+        reference: Perceptual Losses for Real-Time Style Transfer and Super-Resolution
+
+        args:
+            hazy_img: [batch_size, height, width, channels]
+            gene_img: [batch_size, height, width, channels]
+            clear_img: [batch_size, height, width, channels]
+        return:
+            content_loss: float
+            style_loss: float
+            vgg_init_fn: a function to restore vgg model from checkpoint.
+    '''
+    vgg_input_bgr = tf.concat([hazy_img, gene_img, clear_img], axis=0)
+    f1, f2, f3, f4 = call_vgg_16(vgg_input_bgr)
+    hazy_img_f1, gene_img_f1, clear_img_f1 = tf.split(value=f1, num_or_size_splits=3, axis=0)
+    hazy_img_f2, gene_img_f2, clear_img_f2 = tf.split(value=f2, num_or_size_splits=3, axis=0)
+    hazy_img_f3, gene_img_f3, clear_img_f3 = tf.split(value=f3, num_or_size_splits=3, axis=0)
+    hazy_img_f4, gene_img_f4, clear_img_f4 = tf.split(value=f4, num_or_size_splits=3, axis=0)
+
     content_loss = calc_content_loss(hazy_img_f3, gene_img_f3)
 
     style_loss = calc_style_loss(gene_img_f1, clear_img_f1)
