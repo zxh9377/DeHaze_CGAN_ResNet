@@ -40,9 +40,9 @@ class Data_Generator:
                 if len(hazy_imgs) == 0:  # there is no matched hazy image
                     continue
                 clear_path = os.path.join(clear_dir, clear_fname)  # clear image's full path
-                hazy_path = hazy_imgs[0]  # hazy image's full path
-                couple_clear_img.append(clear_path)
-                couple_hazy_img.append(hazy_path)
+                for hp in hazy_imgs:
+                    couple_clear_img.append(clear_path)
+                    couple_hazy_img.append(hp)
 
             # there is no couple clear and hazy image
             if len(couple_hazy_img) == 0:
@@ -102,9 +102,9 @@ class Data_Generator:
                 if len(hazy_imgs) == 0:  # there is no matched hazy image
                     continue
                 clear_path = os.path.join(clear_dir, clear_fname)  # clear image's full path
-                hazy_path = hazy_imgs[0]  # hazy image's full path
-                couple_clear_img.append(clear_path)
-                couple_hazy_img.append(hazy_path)
+                for hp in hazy_imgs:
+                    couple_clear_img.append(clear_path)
+                    couple_hazy_img.append(hp)
 
             # there is no couple clear and hazy image
             if len(couple_hazy_img) == 0:
