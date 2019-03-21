@@ -46,7 +46,6 @@ def train():
                     net_model.input_clear: input_element[0],
                     net_model.input_hazy: input_element[1],
                     net_model.training: True,
-                    net_model.keep_prob: flags.FLAGS.keep_prob
                 }
 
                 val_feed_dict = {}
@@ -60,7 +59,6 @@ def train():
                     val_feed_dict = {
                         net_model.input_clear: val_input_element[0],
                         net_model.input_hazy: val_input_element[1],
-                        net_model.keep_prob: 1.0
                     }
 
                 if is_time(step, val_freq, max_steps):
@@ -115,7 +113,6 @@ def use():
                 input_element = sess.run(use_dataset.input)
                 feed_dict = {
                     net_model.input_hazy: input_element,
-                    net_model.keep_prob: 1.0
                 }
 
                 fetches = {

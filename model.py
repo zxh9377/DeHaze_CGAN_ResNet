@@ -28,7 +28,6 @@ class Model:
                                                     flags.FLAGS.img_channels],
                                              name="input_hazy")
             self.training = tf.placeholder_with_default(input=False, shape=(), name="is_training")
-            self.keep_prob = tf.placeholder(dtype=tf.float32, name="keep_prob")
         self.build_model()
 
     def build_model(self):
@@ -92,12 +91,11 @@ class Model:
             lrelu = tf.nn.leaky_relu(normal)  # lrelu activate
             return lrelu
 
-        def _decoder_block(input, kernel_size, stride, out_channels, keep_prob):
+        def _decoder_block(input, kernel_size, stride, out_channels):
             deconv = tf.layers.conv2d_transpose(inputs=input, filters=out_channels, kernel_size=kernel_size,
                                                 strides=stride, padding="same")  # deconv
             normal = tf.layers.batch_normalization(inputs=deconv, training=self.training)  # batch normalization
-            dropout = tf.nn.dropout(x=normal, keep_prob=keep_prob)  # dropout
-            relu = tf.nn.relu(dropout)  # relu activate
+            relu = tf.nn.relu(normal)  # relu activate
             return relu
 
         layers = []
@@ -153,35 +151,35 @@ class Model:
         # first decoder layer does not have skip connection
         with tf.variable_scope("decoder_1"):
             layers.append(_decoder_block(layers[-1], kernel_size=4, stride=(2, 2),
-                                         out_channels=decoder_filter_num[0], keep_prob=self.keep_prob))
+                                         out_channels=decoder_filter_num[0]))
         with tf.variable_scope("decoder_2"):
             decoder_input = tf.concat([layers[-1], layers[num_encode_layers - 2]], axis=3)
             layers.append(_decoder_block(decoder_input, kernel_size=4, stride=(2, 2),
-                                         out_channels=decoder_filter_num[1], keep_prob=self.keep_prob))
+                                         out_channels=decoder_filter_num[1]))
         with tf.variable_scope("decoder_3"):
             decoder_input = tf.concat([layers[-1], layers[num_encode_layers - 3]], axis=3)
             layers.append(_decoder_block(decoder_input, kernel_size=4, stride=(2, 2),
-                                         out_channels=decoder_filter_num[2], keep_prob=self.keep_prob))
+                                         out_channels=decoder_filter_num[2]))
         with tf.variable_scope("decoder_4"):
             decoder_input = tf.concat([layers[-1], layers[num_encode_layers - 4]], axis=3)
             layers.append(_decoder_block(decoder_input, kernel_size=4, stride=(2, 2),
-                                         out_channels=decoder_filter_num[3], keep_prob=self.keep_prob))
+                                         out_channels=decoder_filter_num[3]))
         with tf.variable_scope("decoder_5"):
             decoder_input = tf.concat([layers[-1], layers[num_encode_layers - 5]], axis=3)
             layers.append(_decoder_block(decoder_input, kernel_size=4, stride=(2, 2),
-                                         out_channels=decoder_filter_num[4], keep_prob=self.keep_prob))
+                                         out_channels=decoder_filter_num[4]))
         with tf.variable_scope("decoder_6"):
             decoder_input = tf.concat([layers[-1], layers[num_encode_layers - 6]], axis=3)
             layers.append(_decoder_block(decoder_input, kernel_size=4, stride=(2, 2),
-                                         out_channels=decoder_filter_num[5], keep_prob=self.keep_prob))
+                                         out_channels=decoder_filter_num[5]))
         with tf.variable_scope("decoder_7"):
             decoder_input = tf.concat([layers[-1], layers[num_encode_layers - 7]], axis=3)
             layers.append(_decoder_block(decoder_input, kernel_size=4, stride=(2, 2),
-                                         out_channels=decoder_filter_num[6], keep_prob=self.keep_prob))
+                                         out_channels=decoder_filter_num[6]))
         with tf.variable_scope("decoder_8"):
             decoder_input = tf.concat([layers[-1], layers[num_encode_layers - 8]], axis=3)
             layers.append(_decoder_block(decoder_input, kernel_size=4, stride=(2, 2),
-                                         out_channels=decoder_filter_num[7], keep_prob=self.keep_prob))
+                                         out_channels=decoder_filter_num[7]))
         # the last decoder is a conv not deconv
         with tf.variable_scope("decoder_9"):
             decoder_input = tf.concat([layers[-1], layers[num_encode_layers - 9]], axis=3)
