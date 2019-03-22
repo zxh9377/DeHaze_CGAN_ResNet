@@ -12,6 +12,12 @@ def is_time(step, freq, max_steps):
     return freq > 0 and (step % freq == 0 or step == max_steps - 1)
 
 
+# store generator's output to image file
+def store_output_image(g_output, file_path):
+    img = data_generator.Data_Generator.de_scale_img(g_output)  # scale image [-1,1] => [0,255]
+    cv2.imwrite(file_path, img)
+
+
 def train():
     train_dataset = data_generator.Data_Generator(mode="train")
     val_dataset = data_generator.Data_Generator(mode="val")
@@ -23,6 +29,9 @@ def train():
     summary_freq = flags.FLAGS.summary_freq
     log_dir = flags.FLAGS.log_dir
     checkpoint_dir = flags.FLAGS.checkpoint_dir
+    val_gene_dir = flags.FLAGS.val_gene_dir
+    output_filetype = flags.FLAGS.output_filetype
+
     if not os.path.isdir(log_dir):
         os.mkdir(log_dir)
         print("make log dir : {}".format(log_dir))
@@ -62,14 +71,22 @@ def train():
                     }
 
                 if is_time(step, val_freq, max_steps):
-                    generator_loss_re, discriminator_loss_re = sess.run(
+                    train_g_loss_re, train_d_loss_re = sess.run(
                         [net_model.generator_loss, net_model.discriminator_loss], feed_dict=feed_dict)
-                    val_generator_loss_re, val_discriminator_loss_re = sess.run(
-                        [net_model.generator_loss, net_model.discriminator_loss], feed_dict=val_feed_dict)
+                    val_g_output, val_g_loss_re, val_d_loss_re = sess.run(
+                        [net_model.generator_output, net_model.generator_loss, net_model.discriminator_loss],
+                        feed_dict=val_feed_dict)
                     print(
                         "step {0}: train_g_loss: {1}\ttrain_d_loss: {2}\t\tval_g_loss: {3}\tval_d_loss: {4}".format(
-                            step, generator_loss_re, discriminator_loss_re, val_generator_loss_re,
-                            val_discriminator_loss_re))
+                            step, train_g_loss_re, train_d_loss_re, val_g_loss_re, val_d_loss_re))
+                    for i in range(len(val_g_output)):
+                        clear = val_feed_dict[net_model.input_clear][i]
+                        hazy = val_feed_dict[net_model.input_hazy][i]
+                        gene = val_g_output[i]
+                        img = np.concatenate((clear, hazy), axis=1)
+                        img = np.concatenate((img, gene), axis=1)
+                        store_output_image(img,
+                                           os.path.join(val_gene_dir, "{0}_{1}.{2}".format(step, i, output_filetype)))
 
                 if is_time(step, summary_freq, max_steps):
                     train_merged_re = sess.run(net_model.train_summary_merged, feed_dict=feed_dict)
@@ -131,10 +148,8 @@ def use():
     print("start store output images...")
     for i, imgs in enumerate(store_images):
         hazy, gene = imgs[0], imgs[1]
-        hazy = data_generator.Data_Generator.de_scale_img(hazy)  # scale image [-1,1] => [0,255]
-        gene = data_generator.Data_Generator.de_scale_img(gene)
         img = np.concatenate((hazy, gene), axis=1)
-        cv2.imwrite(os.path.join(use_store_dir, "{0}.{1}".format(i, output_filetype)), img)
+        store_output_image(img, os.path.join(use_store_dir, "{0}.{1}".format(i, output_filetype)))
     print("store output done...")
 
 

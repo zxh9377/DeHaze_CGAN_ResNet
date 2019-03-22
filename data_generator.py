@@ -23,33 +23,6 @@ class Data_Generator:
     # load train dataset
     def load_train_dataset(self):
 
-        # load clear and hazy image paths for couple
-        def _load_couple_img_path(clear_dir, hazy_dir):
-            self.check_path(clear_dir, message="dir({}) is not exist!".format(clear_dir))
-            self.check_path(hazy_dir, message="dir({}) is not exist!".format(hazy_dir))
-
-            # get all clear images' filename from clear_dir
-            clear_img_fname_list = os.listdir(clear_dir)
-
-            couple_clear_img = []
-            couple_hazy_img = []
-            # match clear and hazy images for couple
-            for clear_fname in clear_img_fname_list:
-                base_name = clear_fname.split(".")[0]  # get basename
-                hazy_imgs = glob.glob(os.path.join(hazy_dir, base_name + "*"))  # match the hazy image
-                if len(hazy_imgs) == 0:  # there is no matched hazy image
-                    continue
-                clear_path = os.path.join(clear_dir, clear_fname)  # clear image's full path
-                for hp in hazy_imgs:
-                    couple_clear_img.append(clear_path)
-                    couple_hazy_img.append(hp)
-
-            # there is no couple clear and hazy image
-            if len(couple_hazy_img) == 0:
-                raise Exception("Message: there is no couple clear and hazy image!")
-
-            return couple_clear_img, couple_hazy_img
-
         # read image
         def _read_image(clear_img_path, hazy_img_path):
             # for tf.py_func() to call opencv module
@@ -68,8 +41,8 @@ class Data_Generator:
             hazy_img = Data_Generator.preprocess_image(hazy_img)
             return clear_img, hazy_img
 
-        couple_clear_img, couple_hazy_img = _load_couple_img_path(clear_dir=flags.FLAGS.train_clear_dir,
-                                                                  hazy_dir=flags.FLAGS.train_hazy_dir)
+        couple_clear_img, couple_hazy_img = Data_Generator.load_couple_img_path(clear_dir=flags.FLAGS.train_clear_dir,
+                                                                                hazy_dir=flags.FLAGS.train_hazy_dir)
 
         self.dataset = tf.data.Dataset.from_tensor_slices((couple_clear_img, couple_hazy_img))
         self.dataset = self.dataset.map(map_func=_read_image)  # read image
@@ -85,33 +58,6 @@ class Data_Generator:
     # load val dataset
     def load_val_dataset(self):
 
-        # load clear and hazy image paths for couple
-        def _load_couple_img_path(clear_dir, hazy_dir):
-            self.check_path(clear_dir, message="dir({}) is not exist!".format(clear_dir))
-            self.check_path(hazy_dir, message="dir({}) is not exist!".format(hazy_dir))
-
-            # get all clear images' filename from clear_dir
-            clear_img_fname_list = os.listdir(clear_dir)
-
-            couple_clear_img = []
-            couple_hazy_img = []
-            # match clear and hazy images for couple
-            for clear_fname in clear_img_fname_list:
-                base_name = clear_fname.split(".")[0]  # get basename
-                hazy_imgs = glob.glob(os.path.join(hazy_dir, base_name + "*"))  # match the hazy image
-                if len(hazy_imgs) == 0:  # there is no matched hazy image
-                    continue
-                clear_path = os.path.join(clear_dir, clear_fname)  # clear image's full path
-                for hp in hazy_imgs:
-                    couple_clear_img.append(clear_path)
-                    couple_hazy_img.append(hp)
-
-            # there is no couple clear and hazy image
-            if len(couple_hazy_img) == 0:
-                raise Exception("Message: there is no couple clear and hazy image!")
-
-            return couple_clear_img, couple_hazy_img
-
         # read image
         def _read_image(clear_img_path, hazy_img_path):
             # for tf.py_func() to call opencv module
@@ -130,8 +76,8 @@ class Data_Generator:
             hazy_img = Data_Generator.preprocess_image(hazy_img)
             return clear_img, hazy_img
 
-        couple_clear_img, couple_hazy_img = _load_couple_img_path(clear_dir=flags.FLAGS.val_clear_dir,
-                                                                  hazy_dir=flags.FLAGS.val_hazy_dir)
+        couple_clear_img, couple_hazy_img = Data_Generator.load_couple_img_path(clear_dir=flags.FLAGS.val_clear_dir,
+                                                                                hazy_dir=flags.FLAGS.val_hazy_dir)
 
         self.dataset = tf.data.Dataset.from_tensor_slices((couple_clear_img, couple_hazy_img))
         self.dataset = self.dataset.map(map_func=_read_image)  # read image
@@ -195,3 +141,22 @@ class Data_Generator:
     def check_path(path, message=None):
         if path is None or not os.path.exists(path):
             raise Exception("Message: {}".format(message))
+
+    # load clear and hazy image paths for couple
+    @staticmethod
+    def load_couple_img_path(clear_dir, hazy_dir):
+        Data_Generator.check_path(clear_dir, message="dir({}) is not exist!".format(clear_dir))
+        Data_Generator.check_path(hazy_dir, message="dir({}) is not exist!".format(hazy_dir))
+
+        clear_img_fname_list = os.listdir(clear_dir)
+        hazy_img_fname_list = os.listdir(clear_dir)
+
+        # full path
+        couple_clear_img = [os.path.join(clear_dir, cf) for cf in clear_img_fname_list]
+        couple_hazy_img = [os.path.join(hazy_dir, hf) for hf in hazy_img_fname_list]
+
+        # there is no couple clear and hazy image
+        if len(couple_hazy_img) == 0:
+            raise Exception("Message: there is no couple clear and hazy image!")
+
+        return couple_clear_img, couple_hazy_img

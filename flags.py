@@ -1,6 +1,6 @@
 import tensorflow as tf
 
-tf.flags.DEFINE_string("mode", "use", "model to train or test or use")
+tf.flags.DEFINE_string("mode", "train", "model to train or test or use")
 
 tf.flags.DEFINE_string("train_clear_dir", "/home/csbhr/workspace/python/python_data/DeHaze_CGAN_ResNet/train/clear",
                        "path to folder containing clear images when training this model")
@@ -10,6 +10,8 @@ tf.flags.DEFINE_string("val_clear_dir", "/home/csbhr/workspace/python/python_dat
                        "path to folder containing clear images when valing this model")
 tf.flags.DEFINE_string("val_hazy_dir", "/home/csbhr/workspace/python/python_data/DeHaze_CGAN_ResNet/val/hazy",
                        "path to folder containing hazy images when valing this model")
+tf.flags.DEFINE_string("val_gene_dir", "/home/csbhr/workspace/python/python_data/DeHaze_CGAN_ResNet/val/gene",
+                       "path to folder containing gene images when valing this model")
 tf.flags.DEFINE_string("use_hazy_dir", "/home/csbhr/workspace/python/python_data/DeHaze_CGAN_ResNet/use/hazy",
                        "path to folder containing hazy images when using this system")
 tf.flags.DEFINE_string("use_store_dir", "/home/csbhr/workspace/python/python_data/DeHaze_CGAN_ResNet/use/gene",
@@ -37,11 +39,11 @@ tf.flags.DEFINE_integer("ngf", 64, "number of generator filters in first conv la
 tf.flags.DEFINE_integer("ndf", 48, "number of discriminator filters in first conv layer")
 # tf.flags.DEFINE_float("keep_prob", 1., "the keep probability in dorpout when training")
 
-tf.flags.DEFINE_float("EPS", 1e-12, "to avoid the input of log function equals zero")
-tf.flags.DEFINE_float("gene_loss_gan_weight", 1., "the weight of gan loss in generator loss")
-tf.flags.DEFINE_float("gene_loss_l1_weight", 150., "the weight of l1 loss in generator loss")
+# tf.flags.DEFINE_float("EPS", 1e-12, "to avoid the input of log function equals zero")
+tf.flags.DEFINE_float("gene_loss_gan_weight", 5e-3, "the weight of gan loss in generator loss")
+tf.flags.DEFINE_float("gene_loss_l1_weight", 1e-2, "the weight of l1 loss in generator loss")
 tf.flags.DEFINE_float("gene_loss_l1_regular", 1e-5, "the factor of regularization in generator L1 loss")
-tf.flags.DEFINE_float("gene_p_loss_weight", 150., "the weight of preceptual loss in generator loss")
+tf.flags.DEFINE_float("gene_p_loss_weight", 1., "the weight of preceptual loss in generator loss")
 
 tf.flags.DEFINE_float("gene_learning_rate", 0.0002, "initial learning rate for adam in generator training")
 tf.flags.DEFINE_float("discrim_learning_rate", 0.0002, "initial learning rate for adam int discriminator training")

@@ -55,20 +55,25 @@ class Model:
                 self.generator_loss = self.generator_GAN_loss * flags.FLAGS.gene_loss_gan_weight \
                                       + self.generator_L1_loss * flags.FLAGS.gene_loss_l1_weight \
                                       + self.gene_p_loss * flags.FLAGS.gene_p_loss_weight
-                # tf.summary.scalar(name="generator_GAN_loss", tensor=self.generator_GAN_loss)
-                # tf.summary.scalar(name="generator_L1_loss", tensor=self.generator_L1_loss)
-                # tf.summary.scalar(name="gene_p_loss", tensor=self.gene_p_loss)
-                train_generator_summary = tf.summary.scalar(name="generator_loss", tensor=self.generator_loss)
-                val_generator_summary = tf.summary.scalar(name="val_generator_loss", tensor=self.generator_loss)
+                train_g_gan_loss_summary = tf.summary.scalar(name="adverse_loss", tensor=self.generator_GAN_loss)
+                train_g_l1_loss_summary = tf.summary.scalar(name="L1_loss", tensor=self.generator_L1_loss)
+                train_g_p_loss_summary = tf.summary.scalar(name="p_loss", tensor=self.gene_p_loss)
+                train_g_loss_summary = tf.summary.scalar(name="train_generator_loss", tensor=self.generator_loss)
+                val_g_loss_summary = tf.summary.scalar(name="val_generator_loss", tensor=self.generator_loss)
             with tf.variable_scope("discriminator_loss"):
                 self.discriminator_loss = self.calc_discriminator_loss(self.discriminator_output_gene,
                                                                        self.discriminator_output_clear)
-                train_discriminator_summary = tf.summary.scalar(name="discriminator_loss",
-                                                                tensor=self.discriminator_loss)
-                val_discriminator_summary = tf.summary.scalar(name="val_discriminator_loss",
-                                                              tensor=self.discriminator_loss)
-            self.train_summary_merged = tf.summary.merge([train_generator_summary, train_discriminator_summary])
-            self.val_summary_merged = tf.summary.merge([val_generator_summary, val_discriminator_summary])
+                train_d_loss_summary = tf.summary.scalar(name="train_discriminator_loss",
+                                                         tensor=self.discriminator_loss)
+                val_d_loss_summary = tf.summary.scalar(name="val_discriminator_loss",
+                                                       tensor=self.discriminator_loss)
+            self.train_summary_merged = tf.summary.merge([train_g_gan_loss_summary,
+                                                          train_g_l1_loss_summary,
+                                                          train_g_p_loss_summary,
+                                                          train_g_loss_summary,
+                                                          train_d_loss_summary])
+            self.val_summary_merged = tf.summary.merge([val_g_loss_summary,
+                                                        val_d_loss_summary])
 
         # train
         with tf.variable_scope("train"):
@@ -192,35 +197,35 @@ class Model:
         return layers[-1]
 
     def create_discriminator(self, input_img, target_img):
-        input_img = tf.concat([input_img, target_img], axis=3)
+        input_img_con = tf.concat([input_img, target_img], axis=3)
 
         # conv_1: [batch_size, 256, 256, in_channels*2] => [batch_size, 256, 256, ndf]
         with tf.variable_scope("conv_1"):
-            conv1 = tf.layers.conv2d(inputs=input_img, filters=flags.FLAGS.ndf, kernel_size=3, strides=(1, 1),
+            conv1 = tf.layers.conv2d(inputs=input_img_con, filters=flags.FLAGS.ndf, kernel_size=3, strides=(1, 1),
                                      padding="same")
-            relu1 = tf.nn.relu(conv1)
+            lrelu1 = tf.nn.leaky_relu(conv1)
 
         # conv_2: [batch_size, 256, 256, ndf] => [batch_size, 256, 256, ndf*2]
         with tf.variable_scope("conv_2"):
-            conv2 = tf.layers.conv2d(inputs=relu1, filters=flags.FLAGS.ndf * 2, kernel_size=3, strides=(1, 1),
+            conv2 = tf.layers.conv2d(inputs=lrelu1, filters=flags.FLAGS.ndf * 2, kernel_size=3, strides=(1, 1),
                                      padding="same")
-            relu2 = tf.nn.relu(conv2)
+            lrelu2 = tf.nn.leaky_relu(conv2)
 
         # conv_3: [batch_size, 256, 256, ndf*2] => [batch_size, 256, 256, ndf*4]
         with tf.variable_scope("conv_3"):
-            conv3 = tf.layers.conv2d(inputs=relu2, filters=flags.FLAGS.ndf * 4, kernel_size=3, strides=(1, 1),
+            conv3 = tf.layers.conv2d(inputs=lrelu2, filters=flags.FLAGS.ndf * 4, kernel_size=3, strides=(1, 1),
                                      padding="same")
-            relu3 = tf.nn.relu(conv3)
+            lrelu3 = tf.nn.leaky_relu(conv3)
 
         # conv_4: [batch_size, 256, 256, ndf*4] => [batch_size, 256, 256, ndf*8]
         with tf.variable_scope("conv_4"):
-            conv4 = tf.layers.conv2d(inputs=relu3, filters=flags.FLAGS.ndf * 8, kernel_size=3, strides=(1, 1),
+            conv4 = tf.layers.conv2d(inputs=lrelu3, filters=flags.FLAGS.ndf * 8, kernel_size=3, strides=(1, 1),
                                      padding="same")
-            relu4 = tf.nn.relu(conv4)
+            lrelu4 = tf.nn.leaky_relu(conv4)
 
         # conv_5: [batch_size, 256, 256, ndf*8] => [batch_size, 256, 256, 1]
         with tf.variable_scope("conv_5"):
-            conv5 = tf.layers.conv2d(inputs=relu4, filters=1, kernel_size=3, strides=(1, 1), padding="same")
+            conv5 = tf.layers.conv2d(inputs=lrelu4, filters=1, kernel_size=3, strides=(1, 1), padding="same")
             sigmod5 = tf.nn.sigmoid(conv5)
 
         # flatten and reduce mean
@@ -231,9 +236,9 @@ class Model:
         return mean_score
 
     def calc_generator_loss(self, hazy_img, gene_img, clear_img, discrim_out_gene):
-        gene_loss_GAN = tf.reduce_mean(tf.log(1 - discrim_out_gene + flags.FLAGS.EPS))
+        gene_loss_GAN = tf.reduce_mean(-(tf.log(1 - discrim_out_gene)))
         gene_loss_L1 = tf.reduce_mean(tf.abs(gene_img - clear_img))
-        _, gene_p_loss = p_loss.calc_preceptual_loss(hazy_img, gene_img, clear_img)
+        gene_p_loss = p_loss.calc_preceptual_loss(hazy_img, gene_img, clear_img)
         return {
             "gene_loss_GAN": gene_loss_GAN,
             "gene_loss_L1": gene_loss_L1,
@@ -241,6 +246,5 @@ class Model:
         }
 
     def calc_discriminator_loss(self, discrim_out_gene, discrim_out_clear):
-        discrim_loss = tf.reduce_mean(
-            -(tf.log(discrim_out_clear + flags.FLAGS.EPS) + tf.log(1 - discrim_out_gene + flags.FLAGS.EPS)))
+        discrim_loss = tf.reduce_mean(-(tf.log(discrim_out_clear) + tf.log(1 - discrim_out_gene)))
         return discrim_loss
