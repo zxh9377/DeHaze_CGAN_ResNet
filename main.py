@@ -38,8 +38,12 @@ def train():
     if not os.path.isdir(checkpoint_dir):
         os.mkdir(checkpoint_dir)
         print("make checkpoint dir : {}".format(checkpoint_dir))
+    if not os.path.isdir(val_gene_dir):
+        os.mkdir(val_gene_dir)
+        print("make val gene dir : {}".format(val_gene_dir))
     print("log dir : {}".format(log_dir))
     print("checkpoint dir : {}".format(checkpoint_dir))
+    print("val gene dir : {}".format(val_gene_dir))
 
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())

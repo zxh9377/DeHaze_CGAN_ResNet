@@ -238,7 +238,7 @@ class Model:
     def calc_generator_loss(self, hazy_img, gene_img, clear_img, discrim_out_gene):
         gene_loss_GAN = tf.reduce_mean(-(tf.log(1 - discrim_out_gene)))
         gene_loss_L1 = tf.reduce_mean(tf.abs(gene_img - clear_img))
-        gene_p_loss = p_loss.calc_preceptual_loss(hazy_img, gene_img, clear_img)
+        gene_p_loss = p_loss.calc_preceptual_loss(gene_img, clear_img)
         return {
             "gene_loss_GAN": gene_loss_GAN,
             "gene_loss_L1": gene_loss_L1,

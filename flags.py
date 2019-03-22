@@ -31,6 +31,8 @@ tf.flags.DEFINE_integer("batch_size", 2, "number of images in batch")
 tf.flags.DEFINE_integer("val_batch_size", 2, "number of images in batch when valing this system")
 tf.flags.DEFINE_integer("use_batch_size", 1, "number of images in batch when using this system")
 tf.flags.DEFINE_integer("max_steps", 50000, "number of training steps (0 to disable)")
+# tf.flags.DEFINE_integer("train_gene_freq", 1, "train generator every train_gene_freq steps, 0 to disable")
+# tf.flags.DEFINE_integer("train_discrim_freq", 100, "train discriminator every train_discrim_freq steps, 0 to disable")
 tf.flags.DEFINE_integer("save_freq", 100, "save model every save_freq steps, 0 to disable")
 tf.flags.DEFINE_integer("val_freq", 10, "val model every val_freq steps")
 tf.flags.DEFINE_integer("summary_freq", 10, "update summaries every summary_freq steps")
@@ -45,7 +47,7 @@ tf.flags.DEFINE_float("gene_loss_l1_weight", 1e-2, "the weight of l1 loss in gen
 tf.flags.DEFINE_float("gene_loss_l1_regular", 1e-5, "the factor of regularization in generator L1 loss")
 tf.flags.DEFINE_float("gene_p_loss_weight", 1., "the weight of preceptual loss in generator loss")
 
-tf.flags.DEFINE_float("gene_learning_rate", 0.0002, "initial learning rate for adam in generator training")
+tf.flags.DEFINE_float("gene_learning_rate", 2e-5, "initial learning rate for adam in generator training")
 tf.flags.DEFINE_float("discrim_learning_rate", 0.0002, "initial learning rate for adam int discriminator training")
 
 tf.flags.DEFINE_string("output_filetype", "png", "png or jpeg")
