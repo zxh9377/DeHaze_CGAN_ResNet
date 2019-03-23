@@ -18,7 +18,7 @@ def calc_preceptual_loss(gene_img, clear_img):
     '''
     vgg_input_bgr = tf.concat([gene_img, clear_img], axis=0)
     f1, f2, f3, f4 = call_vgg_16(vgg_input_bgr)
-    gene_img_f3, clear_img_f3 = tf.split(value=f3, num_or_size_splits=3, axis=0)
+    gene_img_f3, clear_img_f3 = tf.split(value=f3, num_or_size_splits=2, axis=0)
 
     content_loss = calc_content_loss(clear_img_f3, gene_img_f3)
 

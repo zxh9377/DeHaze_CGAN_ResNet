@@ -55,25 +55,35 @@ class Model:
                 self.generator_loss = self.generator_GAN_loss * flags.FLAGS.gene_loss_gan_weight \
                                       + self.generator_L1_loss * flags.FLAGS.gene_loss_l1_weight \
                                       + self.gene_p_loss * flags.FLAGS.gene_p_loss_weight
-                train_g_gan_loss_summary = tf.summary.scalar(name="adverse_loss", tensor=self.generator_GAN_loss)
-                train_g_l1_loss_summary = tf.summary.scalar(name="L1_loss", tensor=self.generator_L1_loss)
-                train_g_p_loss_summary = tf.summary.scalar(name="p_loss", tensor=self.gene_p_loss)
-                train_g_loss_summary = tf.summary.scalar(name="train_generator_loss", tensor=self.generator_loss)
-                val_g_loss_summary = tf.summary.scalar(name="val_generator_loss", tensor=self.generator_loss)
             with tf.variable_scope("discriminator_loss"):
                 self.discriminator_loss = self.calc_discriminator_loss(self.discriminator_output_gene,
                                                                        self.discriminator_output_clear)
                 train_d_loss_summary = tf.summary.scalar(name="train_discriminator_loss",
                                                          tensor=self.discriminator_loss)
-                val_d_loss_summary = tf.summary.scalar(name="val_discriminator_loss",
-                                                       tensor=self.discriminator_loss)
-            self.train_summary_merged = tf.summary.merge([train_g_gan_loss_summary,
-                                                          train_g_l1_loss_summary,
-                                                          train_g_p_loss_summary,
-                                                          train_g_loss_summary,
-                                                          train_d_loss_summary])
-            self.val_summary_merged = tf.summary.merge([val_g_loss_summary,
-                                                        val_d_loss_summary])
+
+        # summary
+        train_g_gan_loss_summary = tf.summary.scalar(name="g_adverse_loss", tensor=self.generator_GAN_loss)
+        train_g_l1_loss_summary = tf.summary.scalar(name="g_l1_loss", tensor=self.generator_L1_loss)
+        train_g_p_loss_summary = tf.summary.scalar(name="g_p_loss", tensor=self.gene_p_loss)
+        train_g_loss_summary = tf.summary.scalar(name="g_loss", tensor=self.generator_loss)
+        train_d_loss_summary = tf.summary.scalar(name="d_loss", tensor=self.discriminator_loss)
+        train_d_output_clear_summary = tf.summary.scalar(name="d_output_clear",
+                                                         tensor=tf.reduce_mean(self.discriminator_output_clear))
+        train_d_output_gene_summary = tf.summary.scalar(name="d_output_gene",
+                                                        tensor=tf.reduce_mean(self.discriminator_output_gene))
+
+        val_g_loss_summary = tf.summary.scalar(name="val_generator_loss", tensor=self.generator_loss)
+        val_d_loss_summary = tf.summary.scalar(name="val_discriminator_loss", tensor=self.discriminator_loss)
+
+        self.train_summary_merged = tf.summary.merge([train_g_gan_loss_summary,
+                                                      train_g_l1_loss_summary,
+                                                      train_g_p_loss_summary,
+                                                      train_g_loss_summary,
+                                                      train_d_loss_summary,
+                                                      train_d_output_clear_summary,
+                                                      train_d_output_gene_summary])
+        self.val_summary_merged = tf.summary.merge([val_g_loss_summary,
+                                                    val_d_loss_summary])
 
         # train
         with tf.variable_scope("train"):
@@ -236,7 +246,7 @@ class Model:
         return mean_score
 
     def calc_generator_loss(self, hazy_img, gene_img, clear_img, discrim_out_gene):
-        gene_loss_GAN = tf.reduce_mean(-(tf.log(1 - discrim_out_gene)))
+        gene_loss_GAN = tf.reduce_mean(tf.log(1 - discrim_out_gene))
         gene_loss_L1 = tf.reduce_mean(tf.abs(gene_img - clear_img))
         gene_p_loss = p_loss.calc_preceptual_loss(gene_img, clear_img)
         return {

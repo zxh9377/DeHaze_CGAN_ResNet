@@ -24,6 +24,8 @@ def train():
     net_model = model.Model()
 
     max_steps = flags.FLAGS.max_steps
+    train_gene_freq = flags.FLAGS.train_gene_freq
+    train_discrim_freq = flags.FLAGS.train_discrim_freq
     save_freq = flags.FLAGS.save_freq
     val_freq = flags.FLAGS.val_freq
     summary_freq = flags.FLAGS.summary_freq
@@ -31,6 +33,7 @@ def train():
     checkpoint_dir = flags.FLAGS.checkpoint_dir
     val_gene_dir = flags.FLAGS.val_gene_dir
     output_filetype = flags.FLAGS.output_filetype
+    checkpoint_max_to_keep = flags.FLAGS.checkpoint_max_to_keep
 
     if not os.path.isdir(log_dir):
         os.mkdir(log_dir)
@@ -49,7 +52,7 @@ def train():
         sess.run(tf.global_variables_initializer())
 
         writer = tf.summary.FileWriter(log_dir + "/", sess.graph)
-        saver = tf.train.Saver(tf.global_variables(), max_to_keep=5)
+        saver = tf.train.Saver(tf.global_variables(), max_to_keep=checkpoint_max_to_keep)
 
         print("start training...")
         for step in range(max_steps):
@@ -60,12 +63,18 @@ def train():
                     net_model.input_hazy: input_element[1],
                     net_model.training: True,
                 }
-
                 val_feed_dict = {}
 
                 # train
+                # if is_time(step, train_gene_freq, max_steps):
+                #     sess.run(net_model.generator_train, feed_dict=feed_dict)
+                # if is_time(step, train_discrim_freq, max_steps):
+                #     sess.run(net_model.discriminator_train, feed_dict=feed_dict)
+                d_output_clear = sess.run(net_model.discriminator_output_clear, feed_dict=feed_dict)
+                d_output_clear = np.mean(d_output_clear)
+                if d_output_clear < 0.8:
+                    sess.run(net_model.discriminator_train, feed_dict=feed_dict)
                 sess.run(net_model.generator_train, feed_dict=feed_dict)
-                sess.run(net_model.discriminator_train, feed_dict=feed_dict)
 
                 if is_time(step, val_freq, max_steps) or is_time(step, summary_freq, max_steps):
                     val_input_element = sess.run(val_dataset.input)
@@ -91,12 +100,13 @@ def train():
                         img = np.concatenate((img, gene), axis=1)
                         store_output_image(img,
                                            os.path.join(val_gene_dir, "{0}_{1}.{2}".format(step, i, output_filetype)))
+                        break  # 只存储一张图片观测
 
                 if is_time(step, summary_freq, max_steps):
                     train_merged_re = sess.run(net_model.train_summary_merged, feed_dict=feed_dict)
-                    val_merged_re = sess.run(net_model.val_summary_merged, feed_dict=val_feed_dict)
+                    # val_merged_re = sess.run(net_model.val_summary_merged, feed_dict=val_feed_dict)
                     writer.add_summary(train_merged_re, step)
-                    writer.add_summary(val_merged_re, step)
+                    # writer.add_summary(val_merged_re, step)
 
                 if is_time(step, save_freq, max_steps):
                     saver.save(sess, os.path.join(checkpoint_dir, "dehaze-model"), global_step=step)
