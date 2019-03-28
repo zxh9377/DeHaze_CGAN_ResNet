@@ -32,11 +32,12 @@ tf.flags.DEFINE_integer("val_batch_size", 2, "number of images in batch when val
 tf.flags.DEFINE_integer("use_batch_size", 1, "number of images in batch when using this system")
 tf.flags.DEFINE_integer("max_steps", 50000, "number of training steps (0 to disable)")
 tf.flags.DEFINE_integer("train_gene_freq", 1, "train generator every train_gene_freq steps, 0 to disable")
-tf.flags.DEFINE_integer("train_discrim_freq", 200, "train discriminator every train_discrim_freq steps, 0 to disable")
-tf.flags.DEFINE_integer("save_freq", 100, "save model every save_freq steps, 0 to disable")
-tf.flags.DEFINE_integer("val_freq", 10, "val model every val_freq steps")
+tf.flags.DEFINE_integer("train_discrim_freq", 0, "train discriminator every train_discrim_freq steps, 0 to disable")
+tf.flags.DEFINE_integer("save_freq", 400, "save model every save_freq steps, 0 to disable")
+tf.flags.DEFINE_integer("val_freq", 50, "val model every val_freq steps")
 tf.flags.DEFINE_integer("summary_freq", 10, "update summaries every summary_freq steps")
 tf.flags.DEFINE_integer("checkpoint_max_to_keep", 2, "the max of number of checkpoint allowed to be stored")
+tf.flags.DEFINE_boolean("train_from_checkpoint", False, "if restore from checkpoint and continue train")
 
 tf.flags.DEFINE_integer("ngf", 64, "number of generator filters in first conv layer")
 tf.flags.DEFINE_integer("ndf", 48, "number of discriminator filters in first conv layer")
@@ -45,11 +46,12 @@ tf.flags.DEFINE_integer("ndf", 48, "number of discriminator filters in first con
 # tf.flags.DEFINE_float("EPS", 1e-12, "to avoid the input of log function equals zero")
 tf.flags.DEFINE_float("gene_loss_gan_weight", 5e-3, "the weight of gan loss in generator loss")
 tf.flags.DEFINE_float("gene_loss_l1_weight", 1e-2, "the weight of l1 loss in generator loss")
-tf.flags.DEFINE_float("gene_loss_l1_regular", 1e-5, "the factor of regularization in generator L1 loss")
 tf.flags.DEFINE_float("gene_p_loss_weight", 1., "the weight of preceptual loss in generator loss")
+# tf.flags.DEFINE_float("gene_loss_l1_regular", 1e-5, "the factor of regularization in generator L1 loss")
+tf.flags.DEFINE_float("discrim_gp_factor", 1e-5, "the factor of regularization in discriminator loss")
 
-tf.flags.DEFINE_float("gene_learning_rate", 2e-5, "initial learning rate for adam in generator training")
-tf.flags.DEFINE_float("discrim_learning_rate", 0.0002, "initial learning rate for adam int discriminator training")
+tf.flags.DEFINE_float("gene_learning_rate", 2e-4, "initial learning rate for adam in generator training")
+tf.flags.DEFINE_float("discrim_learning_rate", 2e-4, "initial learning rate for adam int discriminator training")
 
 tf.flags.DEFINE_string("output_filetype", "png", "png or jpeg")
 

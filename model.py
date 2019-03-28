@@ -58,8 +58,6 @@ class Model:
             with tf.variable_scope("discriminator_loss"):
                 self.discriminator_loss = self.calc_discriminator_loss(self.discriminator_output_gene,
                                                                        self.discriminator_output_clear)
-                train_d_loss_summary = tf.summary.scalar(name="train_discriminator_loss",
-                                                         tensor=self.discriminator_loss)
 
         # summary
         train_g_gan_loss_summary = tf.summary.scalar(name="g_adverse_loss", tensor=self.generator_GAN_loss)
@@ -236,17 +234,11 @@ class Model:
         # conv_5: [batch_size, 256, 256, ndf*8] => [batch_size, 256, 256, 1]
         with tf.variable_scope("conv_5"):
             conv5 = tf.layers.conv2d(inputs=lrelu4, filters=1, kernel_size=3, strides=(1, 1), padding="same")
-            sigmod5 = tf.nn.sigmoid(conv5)
 
-        # flatten and reduce mean
-        with tf.variable_scope("reduce_mean"):
-            flatten = tf.reshape(sigmod5, shape=[-1, flags.FLAGS.scale_size * flags.FLAGS.scale_size])
-            mean_score = tf.reduce_mean(flatten, axis=1)
-
-        return mean_score
+        return conv5
 
     def calc_generator_loss(self, hazy_img, gene_img, clear_img, discrim_out_gene):
-        gene_loss_GAN = tf.reduce_mean(tf.log(1 - discrim_out_gene))
+        gene_loss_GAN = tf.reduce_mean(- discrim_out_gene)
         gene_loss_L1 = tf.reduce_mean(tf.abs(gene_img - clear_img))
         gene_p_loss = p_loss.calc_preceptual_loss(gene_img, clear_img)
         return {
@@ -256,5 +248,18 @@ class Model:
         }
 
     def calc_discriminator_loss(self, discrim_out_gene, discrim_out_clear):
-        discrim_loss = tf.reduce_mean(-(tf.log(discrim_out_clear) + tf.log(1 - discrim_out_gene)))
+        discrim_loss = tf.reduce_mean(discrim_out_gene - discrim_out_clear)
+
+        # compute gradient penalty
+        batch_size = tf.shape(self.input_clear)[0]
+        alpha = tf.random_uniform(shape=[batch_size, 1, 1, 1], minval=0., maxval=1.)
+        differents = self.input_clear - self.generator_output
+        interpolates = self.input_clear + (alpha * differents)
+        g_interpolates = self.create_discriminator(self.input_hazy, interpolates)
+        gradient = tf.gradients(g_interpolates, interpolates)[0]
+        bound_norm = tf.sqrt(tf.reduce_sum(tf.square(gradient), axis=[1, 2, 3]))
+        gradient_penalty = tf.reduce_mean((bound_norm - 1.) ** 2)
+
+        discrim_loss += flags.FLAGS.discrim_gp_factor * gradient_penalty
+
         return discrim_loss

@@ -34,6 +34,7 @@ def train():
     val_gene_dir = flags.FLAGS.val_gene_dir
     output_filetype = flags.FLAGS.output_filetype
     checkpoint_max_to_keep = flags.FLAGS.checkpoint_max_to_keep
+    train_from_checkpoint = flags.FLAGS.train_from_checkpoint
 
     if not os.path.isdir(log_dir):
         os.mkdir(log_dir)
@@ -49,10 +50,20 @@ def train():
     print("val gene dir : {}".format(val_gene_dir))
 
     with tf.Session() as sess:
-        sess.run(tf.global_variables_initializer())
+
+        if train_from_checkpoint:
+            saver = tf.train.Saver(tf.global_variables(), max_to_keep=checkpoint_max_to_keep)
+            ckpt = tf.train.latest_checkpoint(checkpoint_dir)
+            if ckpt:
+                saver.restore(sess, ckpt)
+                print("restore model from checkpoint {}...".format(ckpt))
+            else:
+                raise Exception("Message: no checkpoint be found!")
+        else:
+            sess.run(tf.global_variables_initializer())
+            saver = tf.train.Saver(tf.global_variables(), max_to_keep=checkpoint_max_to_keep)
 
         writer = tf.summary.FileWriter(log_dir + "/", sess.graph)
-        saver = tf.train.Saver(tf.global_variables(), max_to_keep=checkpoint_max_to_keep)
 
         print("start training...")
         for step in range(max_steps):
@@ -66,15 +77,16 @@ def train():
                 val_feed_dict = {}
 
                 # train
-                # if is_time(step, train_gene_freq, max_steps):
-                #     sess.run(net_model.generator_train, feed_dict=feed_dict)
-                # if is_time(step, train_discrim_freq, max_steps):
-                #     sess.run(net_model.discriminator_train, feed_dict=feed_dict)
-                d_output_clear = sess.run(net_model.discriminator_output_clear, feed_dict=feed_dict)
-                d_output_clear = np.mean(d_output_clear)
-                if d_output_clear < 0.8:
+                if is_time(step, train_gene_freq, max_steps):
+                    sess.run(net_model.generator_train, feed_dict=feed_dict)
+                if is_time(step, train_discrim_freq, max_steps):
                     sess.run(net_model.discriminator_train, feed_dict=feed_dict)
-                sess.run(net_model.generator_train, feed_dict=feed_dict)
+                    print("**** train discriminator ****")
+                # d_output_clear = sess.run(net_model.discriminator_output_clear, feed_dict=feed_dict)
+                # d_output_clear = np.mean(d_output_clear)
+                # if d_output_clear < 0.8:
+                #     sess.run(net_model.discriminator_train, feed_dict=feed_dict)
+                # sess.run(net_model.generator_train, feed_dict=feed_dict)
 
                 if is_time(step, val_freq, max_steps) or is_time(step, summary_freq, max_steps):
                     val_input_element = sess.run(val_dataset.input)
@@ -124,13 +136,14 @@ def use():
     checkpoint_dir = flags.FLAGS.checkpoint_dir
     use_store_dir = flags.FLAGS.use_store_dir
     output_filetype = flags.FLAGS.output_filetype
+    checkpoint_max_to_keep = flags.FLAGS.checkpoint_max_to_keep
 
     store_images = []
 
     with tf.Session() as sess:
         # sess.run(tf.global_variables_initializer())
 
-        saver = tf.train.Saver(tf.global_variables(), max_to_keep=5)
+        saver = tf.train.Saver(tf.global_variables(), max_to_keep=checkpoint_max_to_keep)
         ckpt = tf.train.latest_checkpoint(checkpoint_dir)
         if ckpt:
             saver.restore(sess, ckpt)
